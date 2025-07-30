@@ -1,0 +1,33 @@
+.error {
+  color: #d32f2f;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.error-message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #f44336;
+  border-radius: 4px;
+  text-align: center;
+}
+
+button[disabled] {
+  background-color: #90caf9;
+  cursor: not-allowed;
+}
+
+input.ng-invalid.ng-touched {
+  border-color: #f44336;
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
