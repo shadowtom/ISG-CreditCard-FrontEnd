@@ -1,26 +1,35 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { PaymentService } from '../../core/services/payment.service';
 import { v4 as uuidv4 } from 'uuid';
+import { Subscription, interval } from 'rxjs';
+import { switchMap, takeWhile } from 'rxjs/operators';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-payment',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './payment.component.html',
-  styleUrls: ['./payment.component.scss']
+  styleUrls: ['./payment.component.scss'],
+  imports: [CommonModule, ReactiveFormsModule],
 })
-export class PaymentComponent {
-  form: ReturnType<FormBuilder['group']>;
+export class PaymentComponent implements OnInit, OnDestroy {
+  paymentForm: FormGroup;
+  transactionId: string | null = null;
+  paymentStatus: string = 'pending';
+  pollingSubscription: Subscription | null = null;
+  isLoading: boolean = false;
+  paymentResult: any = null;
 
-  constructor(private fb: FormBuilder, private http: HttpClient) {
-    this.form = this.fb.group({
+  constructor(
+    private fb: FormBuilder,
+    private paymentService: PaymentService
+  ) {
+    this.paymentForm = this.fb.group({
       totalAmount: [0, [Validators.required, Validators.min(0.01)]],
       currencyCode: ['USD', [Validators.required]],
-      cardPan: ['', [Validators.required]],
-      cardCvv: ['', [Validators.required]],
-      cardExpiration: ['', [Validators.required]],
+      cardPan: ['', [Validators.required, Validators.pattern(/^[0-9]{16}$/)]],
+      cardCvv: ['', [Validators.required, Validators.pattern(/^[0-9]{3,4}$/)]],
+      cardExpiration: ['', [Validators.required, Validators.pattern(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/)]],
       cardholderName: ['', [Validators.required]],
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
@@ -29,52 +38,70 @@ export class PaymentComponent {
       city: ['', [Validators.required]],
       state: ['', [Validators.required]],
       postalCode: ['', [Validators.required]],
-      countryCode: ['', [Validators.required]],
+      countryCode: ['US', [Validators.required]],
       emailAddress: ['', [Validators.required, Validators.email]],
       phoneNumber: ['', [Validators.required]]
     });
   }
 
-  submitPayment() {
-    const id = uuidv4(); // unique transaction & order ID
+  ngOnInit(): void {}
+
+  onSubmit(): void {
+    if (this.paymentForm.invalid) {
+      this.markFormGroupTouched(this.paymentForm);
+      return;
+    }
+
+    this.isLoading = true;
+    this.paymentStatus = 'processing';
+    const transactionId = uuidv4();
 
     const payload = {
-      transactionIdentifier: id,
-      orderIdentifier: id,
-      totalAmount: this.form.value.totalAmount,
-      currencyCode: this.form.value.currencyCode,
-      threeDSecure: true,
-      source: {
-        cardPan: this.form.value.cardPan,
-        cardCvv: this.form.value.cardCvv,
-        cardExpiration: this.form.value.cardExpiration,
-        cardholderName: this.form.value.cardholderName
-      },
-      billingAddress: {
-        firstName: this.form.value.firstName,
-        lastName: this.form.value.lastName,
-        line1: this.form.value.line1,
-        line2: this.form.value.line2,
-        city: this.form.value.city,
-        state: this.form.value.state,
-        postalCode: this.form.value.postalCode,
-        countryCode: this.form.value.countryCode,
-        emailAddress: this.form.value.emailAddress,
-        phoneNumber: this.form.value.phoneNumber
-      },
-      addressMatch: true,
-      extendedData: {
-        threeDSecure: {
-          challengeWindowSize: 4,
-          challengeIndicator: '01'
-        },
-        merchantResponseUrl: 'https://your-callback.url'
-      }
+      ...this.paymentForm.value,
+      transactionIdentifier: transactionId,
+      orderIdentifier: transactionId
     };
 
-    this.http.post('https://your-payment-endpoint.com/api/pay', payload).subscribe({
-      next: (res) => console.log('✅ Payment successful:', res),
-      error: (err) => console.error('❌ Payment failed:', err)
+    this.paymentService.processPayment(payload).subscribe({
+      next: (response) => {
+        this.transactionId = transactionId;
+        this.startPolling(transactionId);
+      },
+      error: (error) => {
+        console.error('Payment error:', error);
+        this.paymentStatus = 'failed';
+        this.isLoading = false;
+      }
     });
+  }
+
+  startPolling(transactionId: string): void {
+    this.pollingSubscription = interval(2000).pipe(
+      switchMap(() => this.paymentService.checkPaymentStatus(transactionId)),
+      takeWhile((response) => {
+        if (response.status === 'completed' || response.status === 'failed') {
+          this.paymentStatus = response.status;
+          this.paymentResult = response;
+          this.isLoading = false;
+          return false;
+        }
+        return true;
+      }, true)
+    ).subscribe();
+  }
+
+  markFormGroupTouched(formGroup: FormGroup): void {
+    Object.values(formGroup.controls).forEach(control => {
+      control.markAsTouched();
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+    }
   }
 }

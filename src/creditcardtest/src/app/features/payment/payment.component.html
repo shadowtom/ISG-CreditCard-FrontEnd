@@ -1,37 +1,172 @@
-<form [formGroup]="form" (ngSubmit)="submitPayment()">
-  <fieldset>
-    <legend>💳 Payment Info</legend>
-    <label>Total Amount</label>
-    <input formControlName="totalAmount" type="number" />
+<div class="payment-container">
+  <form [formGroup]="paymentForm" (ngSubmit)="onSubmit()" *ngIf="paymentStatus === 'pending'">
+    <fieldset>
+      <legend>💳 Payment Information</legend>
 
-    <label>Currency</label>
-    <select formControlName="currencyCode">
-      <option value="USD">USD</option>
-      <option value="AWG">AWG</option>
-    </select>
-  </fieldset>
+      <div class="form-group">
+        <label for="totalAmount">Total Amount</label>
+        <input id="totalAmount" formControlName="totalAmount" type="number" step="0.01">
+        <div *ngIf="paymentForm.get('totalAmount')?.invalid && paymentForm.get('totalAmount')?.touched" class="error-message">
+          Valid amount required (min 0.01)
+        </div>
+      </div>
 
-  <fieldset>
-    <legend>🧾 Card Info</legend>
-    <input formControlName="cardPan" placeholder="Card Number" />
-    <input formControlName="cardCvv" placeholder="CVV" />
-    <input formControlName="cardExpiration" placeholder="MM/YY" />
-    <input formControlName="cardholderName" placeholder="Cardholder Name" />
-  </fieldset>
+      <div class="form-group">
+        <label for="currencyCode">Currency</label>
+        <select id="currencyCode" formControlName="currencyCode">
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+        </select>
+      </div>
+    </fieldset>
 
-  <fieldset>
-    <legend>🏠 Billing Address</legend>
-    <input formControlName="firstName" placeholder="First Name" />
-    <input formControlName="lastName" placeholder="Last Name" />
-    <input formControlName="line1" placeholder="Address Line 1" />
-    <input formControlName="line2" placeholder="Address Line 2" />
-    <input formControlName="city" placeholder="City" />
-    <input formControlName="state" placeholder="State" />
-    <input formControlName="postalCode" placeholder="Postal Code" />
-    <input formControlName="countryCode" placeholder="Country Code" />
-    <input formControlName="emailAddress" placeholder="Email" />
-    <input formControlName="phoneNumber" placeholder="Phone" />
-  </fieldset>
+    <fieldset>
+      <legend>🧾 Card Details</legend>
 
-  <button type="submit" [disabled]="form.invalid">💰 Submit Payment</button>
-</form>
+      <div class="form-group">
+        <label for="cardPan">Card Number</label>
+        <input id="cardPan" formControlName="cardPan" placeholder="1234 5678 9012 3456">
+        <div *ngIf="paymentForm.get('cardPan')?.invalid && paymentForm.get('cardPan')?.touched" class="error-message">
+          Valid 16-digit card number required
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="cardExpiration">Expiration (MM/YY)</label>
+          <input id="cardExpiration" formControlName="cardExpiration" placeholder="MM/YY">
+          <div *ngIf="paymentForm.get('cardExpiration')?.invalid && paymentForm.get('cardExpiration')?.touched" class="error-message">
+            Valid expiration date required
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="cardCvv">CVV</label>
+          <input id="cardCvv" formControlName="cardCvv" placeholder="123">
+          <div *ngIf="paymentForm.get('cardCvv')?.invalid && paymentForm.get('cardCvv')?.touched" class="error-message">
+            3 or 4 digit code required
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="cardholderName">Cardholder Name</label>
+        <input id="cardholderName" formControlName="cardholderName" placeholder="John Doe">
+        <div *ngIf="paymentForm.get('cardholderName')?.invalid && paymentForm.get('cardholderName')?.touched" class="error-message">
+          Cardholder name required
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>🏠 Billing Address</legend>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input id="firstName" formControlName="firstName">
+          <div *ngIf="paymentForm.get('firstName')?.invalid && paymentForm.get('firstName')?.touched" class="error-message">
+            Required
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input id="lastName" formControlName="lastName">
+          <div *ngIf="paymentForm.get('lastName')?.invalid && paymentForm.get('lastName')?.touched" class="error-message">
+            Required
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="line1">Address Line 1</label>
+        <input id="line1" formControlName="line1">
+        <div *ngIf="paymentForm.get('line1')?.invalid && paymentForm.get('line1')?.touched" class="error-message">
+          Required
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="line2">Address Line 2 (Optional)</label>
+        <input id="line2" formControlName="line2">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="city">City</label>
+          <input id="city" formControlName="city">
+          <div *ngIf="paymentForm.get('city')?.invalid && paymentForm.get('city')?.touched" class="error-message">
+            Required
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="state">State</label>
+          <input id="state" formControlName="state">
+          <div *ngIf="paymentForm.get('state')?.invalid && paymentForm.get('state')?.touched" class="error-message">
+            Required
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="postalCode">Postal Code</label>
+          <input id="postalCode" formControlName="postalCode">
+          <div *ngIf="paymentForm.get('postalCode')?.invalid && paymentForm.get('postalCode')?.touched" class="error-message">
+            Required
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="countryCode">Country</label>
+          <select id="countryCode" formControlName="countryCode">
+            <option value="US">United States</option>
+            <option value="GB">United Kingdom</option>
+            <option value="CA">Canada</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="emailAddress">Email</label>
+          <input id="emailAddress" formControlName="emailAddress" type="email">
+          <div *ngIf="paymentForm.get('emailAddress')?.invalid && paymentForm.get('emailAddress')?.touched" class="error-message">
+            Valid email required
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="phoneNumber">Phone</label>
+          <input id="phoneNumber" formControlName="phoneNumber">
+          <div *ngIf="paymentForm.get('phoneNumber')?.invalid && paymentForm.get('phoneNumber')?.touched" class="error-message">
+            Required
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <button type="submit" [disabled]="paymentForm.invalid || isLoading">
+      <span *ngIf="!isLoading">💰 Submit Payment</span>
+      <span *ngIf="isLoading">Processing...</span>
+    </button>
+  </form>
+
+  <div *ngIf="paymentStatus === 'processing'" class="status-container">
+    <div class="spinner"></div>
+    <p>Processing your payment...</p>
+  </div>
+
+  <div *ngIf="paymentStatus === 'completed'" class="status-container success">
+    <h3>✅ Payment Successful</h3>
+    <p>Transaction ID: {{ transactionId }}</p>
+    <button (click)="paymentStatus = 'pending'">Make Another Payment</button>
+  </div>
+
+  <div *ngIf="paymentStatus === 'failed'" class="status-container error">
+    <h3>❌ Payment Failed</h3>
+    <p>Please try again or contact support.</p>
+    <button (click)="paymentStatus = 'pending'">Try Again</button>
+  </div>
+</div>
